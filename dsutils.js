@@ -289,13 +289,13 @@ Resize automatically the svg given in argument, on 'resize' and 'load' events.
 Use start() to start listening to events, and stop() to stop. (These functions
 actually add or remove event listeners...)
 
-Create by calling ds.responsive(svgElement, callback)
+Create by calling ds.responsive(svgElement, onResize)
 The svgElement is a d3 selection that contains just a svg and
-the callback function will be invoked whenever an update() takes place.
+the onResize function will be invoked whenever an update() takes place.
 It is invoked with updated svgElement, initial width and initial height
 of svg upon creation of the ds.responsive() :
 
-	callback(svgElement, initial_width, initial_height).
+	onResize(svgElement, initial_width, initial_height).
 
 The update(event) function can also be called directly to force an update
 outside of regular updates triggered by 'resize' and 'load' events.
@@ -323,14 +323,14 @@ Minimal use case with callback :
 */
 (function() {
 
-	function responsive(svgElement, callback) {
+	function responsive(svgElement, _onResize) {
 		
 		var svg          = svgElement,
 			w            = svg.attr("width"),
     		h            = svg.attr("height"),
 			aspect       = w / h,
 			init         = true,
-			call         = callback
+			onResize     = _onResize,
 			events       = ['resize', 'load'],
 			started      = false;
 
@@ -341,7 +341,7 @@ Minimal use case with callback :
 		  	var targetHeight = targetWidth / aspect;
 		  	svg.attr("width", targetWidth);
 		  	svg.attr("height", targetHeight);
-		  	if (typeof call === 'function') call(svg,w,h);
+		  	if (typeof onResize === 'function') onResize(svg,w,h);
 		  	return my;
 		}
 
