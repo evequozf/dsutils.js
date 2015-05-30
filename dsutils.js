@@ -57,20 +57,13 @@ var ds = (function() {
 	// Helper function, taking arbitrary number of parameters (p1, p2, p3, ...)
 	// and return p1 ( p2, p3, ... ) if p1 is a function,
 	// and the value of p1 otherwise	
-	// FIXME : don't work. Think more.
-	/*	
+	// read https://shifteleven.com/articles/2007/06/28/array-like-objects-in-javascript/
 	function ds_eval() {
 		if(!arguments.length) return null;
-		var p1 = arguments[0], args = [];
-		Array.prototype.push.apply( args, arguments );
-		//console.log(arguments);
-		//console.log(args);
-		var newArgs = args.shift();
-		//console.log(newArgs);
-		//console.log(args);
-		return ((typeof p1 == 'function') ? p1.apply(null,newArgs) : p1); 
-		//FIXME : problème ! p1 semble ne pas être appelé avec les bons paramètres ...
-	}*/
+		var args = Array.prototype.slice.call(arguments);
+		var p1 = args.shift();
+		return ((typeof p1 === "function") ? p1.apply(this, args) : p1);
+	}
 
 
 /***************** Tooltip *********************//*
@@ -213,13 +206,6 @@ See function definition for further fields and functions.
 		  	*/
 		}
 
-		// Helper function, taking 4 parameters at max
-		// and returns f ( d, i, c ) if f is a function,
-		// and the value of f otherwise	
-		function ds_eval(f,d,i,c) {
-			return (typeof f === 'function') ? f(d,i,c) : f; 
-		}
-
 		// Initialize by creating a div for this tooltip
 		function _init() {
 			return container.append("div").attr({"class":defclass,"style":defstyle});
@@ -308,7 +294,6 @@ See function definition for further fields and functions.
 
 		// Shows the tooltip
 		my.show = function(d,i,context) {
-			console.log("this in show"); console.log(this);
 			// Build or rebuild if destroyed
 			my();  
 			// First execute html, and set HTML
