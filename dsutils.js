@@ -11,9 +11,14 @@ var ds = (function() {
 	return properties;
 })();
 
+(function() {
+
+	//Declare version
+	ds.version = "0.1";
+
 /************ Adding util - example prototype *****************/
 /*
-(function() {
+//(function() {  //leave out: only one is needed at beginning of file after ds declaration
 
 	function util() {
 		var height    = 10,
@@ -43,15 +48,38 @@ var ds = (function() {
 
 	ds.util = util;
 
-})();
+// })(); // leave out: only one is needed at the end of file
 */
+
+/***************** Evalutation of value or function ***************//*
+*/
+
+	// Helper function, taking arbitrary number of parameters (p1, p2, p3, ...)
+	// and return p1 ( p2, p3, ... ) if p1 is a function,
+	// and the value of p1 otherwise	
+	// FIXME : don't work. Think more.
+	/*	
+	function ds_eval() {
+		if(!arguments.length) return null;
+		var p1 = arguments[0], args = [];
+		Array.prototype.push.apply( args, arguments );
+		//console.log(arguments);
+		//console.log(args);
+		var newArgs = args.shift();
+		//console.log(newArgs);
+		//console.log(args);
+		return ((typeof p1 == 'function') ? p1.apply(null,newArgs) : p1); 
+		//FIXME : problème ! p1 semble ne pas être appelé avec les bons paramètres ...
+	}*/
+
 
 /***************** Tooltip *********************//*
 
 1. Easiest use: create the tooltip by binding to a selection, 
-an set onShow for content change:
+an set html for content change:
 
-	var tt = ds.ttip(selection).onShow(function(d){tt.html(d.Nom)});
+	var tt = ds.tooltip(selection);
+  	tt.html(function(d) { return d.Nom + "<br>" + d.Altitude + "m"; });
 
 2. Without binding to selection, you have to manually call listeners : 
 attach the display of the tooltip to a selection of D3 elements 
@@ -81,9 +109,9 @@ and not on event d3.event.pageX and d3.event.pageY (default) :
 	  // Set tooltip position to be at the middle of this element
 	  // shortcut for x(function, true) (true mean relative coordinates)
 	  tt
-    	.x(function(d){return d.x;})
-    	.y(function(d){return d.y;})
-    	.offsety(function(d){return d.radius;});
+    	.x(function(d){return x(d);})
+    	.y(function(d){return y(d);})
+    	.offsety(r);
 
 	  // Update variables in tooltip without reselecting
 	  tt.onShow(function(d,i) {
@@ -97,13 +125,39 @@ and not on event d3.event.pageX and d3.event.pageY (default) :
 	  svg.on("click", tt.hide);    //touch screen -> hide on click elsewhere
 	}
 
+IMPORTANT WARNING
+
+The value set by .html(...) has precedence over the value of .onShow(...).
+Therefore, when the tooltip is shown, tt.html() is evaluated before 
+and it replaces the whole HTML content. For example if you call:
+
+	var tt = ds.tooltip(selection);
+	var div = tt.content().append("div");
+	tt.onShow(function(d) { div.text("Hello"); });
+	tt.html("World");
+	tt.show();
+
+The tooltip will actually be just 
+
+	<div class="tooltip">World</div>.
+
+Therefore, to avoid bad surprises, use wether .html() or .onShow(), 
+but not both simultaneously. Setting .html(null) effectively removes
+execution of the .html() when showing the tooltip.
+
+Also, different tooltips can be created for different d3 selection, e.g.:
+
+	var tt1 = ds.tooltip( svg.selectAll("rect") );
+  	tt1.html("I'm rect");
+
+	var tt2 = ds.tooltip( svg.selectAll("circle") );
+  	tt2.html("I'm circle and red").content().style("color","red");
+
 -------------------------------
 
 See function definition for further fields and functions.
 
 */
-
-(function() {
 
 	function ttip(selection) {
 		
@@ -120,7 +174,8 @@ See function definition for further fields and functions.
 			offsetx   = function(d,i,context) { return -that.node().getBoundingClientRect().width/2;},
 			offsety   = function(d,i,context) { return 15;},
 			
-			onShow    = function() {};
+			onShow    = function() {},
+			html      = null;
 
 		// (Re-)Generate the tooltip in case content was removed by caller
 		function my() {
@@ -158,21 +213,24 @@ See function definition for further fields and functions.
 		  	*/
 		}
 
+		// Helper function, taking 4 parameters at max
+		// and returns f ( d, i, c ) if f is a function,
+		// and the value of f otherwise	
+		function ds_eval(f,d,i,c) {
+			return (typeof f === 'function') ? f(d,i,c) : f; 
+		}
+
 		// Initialize by creating a div for this tooltip
 		function _init() {
 			return container.append("div").attr({"class":defclass,"style":defstyle});
 		}
-
-		// Helper function, returns the value of f(d,i,c) if f is a function,
-		// and the value of f otherwise
-		function _val(f,d,i,c) { return (typeof f == 'function' ? f(d,i,c) : f); }
 
 		// Functions that converts a given x and y in containers' coordinates
 		// into absolute coordinates on the page, pageX and pageY.
 		// see http://codepen.io/recursiev/pen/zpJxs
 		function _matrix(d,i,context) {
 			return context.getScreenCTM()
-	    		.translate(_val(x,d,i,context), _val(y,d,i,context));
+	    		.translate(ds_eval(x,d,i,context), ds_eval(y,d,i,context));
 		}
 		function _pageX(d,i,context) {
 			return (window.pageXOffset + _matrix(d,i,context).e);
@@ -184,15 +242,15 @@ See function definition for further fields and functions.
 		// Return real x and y. This is x + offset, in absolute screen coordinates.  	
 	  	function _realX(d,i,context) {
 	  		var s = 
-	  			(!isAbsoluteX ? _pageX(d,i,context) : _val(x,d,i,context))
-	  			+ _val(offsetx,d,i,context) 
+	  			(!isAbsoluteX ? _pageX(d,i,context) : ds_eval(x,d,i,context))
+	  			+ ds_eval(offsetx,d,i,context) 
 	  			+ "px";
 	  		return s;
 	  	}
 	  	function _realY(d,i,context) {
 	  		var s = 
-	  		(!isAbsoluteX ? _pageY(d,i,context) : _val(y,d,i,context))
-	  		 + _val(offsety,d,i,context) 
+	  		(!isAbsoluteX ? _pageY(d,i,context) : ds_eval(y,d,i,context))
+	  		 + ds_eval(offsety,d,i,context) 
 	  		 + "px";
 	  		return s;
 	  	}
@@ -236,9 +294,9 @@ See function definition for further fields and functions.
 			return my;
 		}
 
-		my.html = function(html) {
-			if (!arguments.length) return that.html();
-	    	that.html(html);
+		my.html = function(value) {
+			if (!arguments.length) return html;
+			html = value;
 	    	return my;
 		}
 
@@ -250,7 +308,13 @@ See function definition for further fields and functions.
 
 		// Shows the tooltip
 		my.show = function(d,i,context) {
-			my();  // build or rebuild if destroyed
+			console.log("this in show"); console.log(this);
+			// Build or rebuild if destroyed
+			my();  
+			// First execute html, and set HTML
+			var v = (typeof html === 'function') ? html(d,i,context) : html;
+			if (v != null) that.html(v);
+			// Then execute onShow
 			if (typeof onShow === 'function') onShow(d,i,context);
 			that
 				.style("left", _realX(d,i,context))
@@ -277,9 +341,8 @@ See function definition for further fields and functions.
 	}
 	
 	// Extend ds with defined function
+	ds.tooltip = ttip;
 	ds.ttip = ttip;
-
-})();
 
 
 
@@ -321,7 +384,8 @@ Minimal use case with callback :
 
 ---------------------------
 */
-(function() {
+
+//TODO : add argument maxWith (by default SVG initial size) ? useful ?
 
 	function responsive(svgElement, _onResize) {
 		
@@ -384,6 +448,16 @@ Minimal use case with callback :
 	}
 
 	ds.responsive = responsive;
+
+
+/***************** Number formatting *********************//*
+
+*/
+	function formatNumber(d) {
+		return d3.format(",d")(d).replace(/,/g,"'");	
+	}
+
+	ds.formatNumber = formatNumber;
 
 })();
 
