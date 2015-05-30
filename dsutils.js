@@ -337,9 +337,9 @@ Resize automatically the svg given in argument, on 'resize' and 'load' events.
 Use start() to start listening to events, and stop() to stop. (These functions
 actually add or remove event listeners...)
 
-Create by calling ds.responsive(svgElement, onResize)
+Create by calling ds.responsive(svgElement).onResize(foo)
 The svgElement is a d3 selection that contains just a svg and
-the onResize function will be invoked whenever an update() takes place.
+the foo function given as argument to onResize will be invoked whenever an update() takes place.
 It is invoked with updated svgElement, initial width and initial height
 of svg upon creation of the ds.responsive() :
 
@@ -362,7 +362,9 @@ Minimal use case with callback :
 	}
 
 	// Create the responsive wrapper and start it
-	var rsp = ds.responsive(d3.select("svg"), customResize).start();
+	var rsp = ds.responsive(d3.select("svg"))
+				.onResize(customResize)
+				.start();
 
 	// Stop listening to events
 	rsp.stop();
@@ -370,28 +372,31 @@ Minimal use case with callback :
 ---------------------------
 */
 
-//TODO : add argument maxWith (by default SVG initial size) ? useful ?
+//TODO : add argument maxWidth (by default it is SVG initial size).
+// todo : add argument minWidth 
 
-	function responsive(svgElement, _onResize) {
+	function responsive(svgElement) {
 		
 		var svg          = svgElement,
 			w            = svg.attr("width"),
     		h            = svg.attr("height"),
 			aspect       = w / h,
+			//minWidth     = 0,
+			//minHeight    = 0,
 			init         = true,
-			onResize     = _onResize,
+			onResize     = null,
 			events       = ['resize', 'load'],
 			started      = false;
 
 		my.update = function(event) {
 			my();
-			var targetWidth = svg.node().parentNode.offsetWidth;
-		  	targetWidth = targetWidth < w ? targetWidth : w;
-		  	var targetHeight = targetWidth / aspect;
-		  	svg.attr("width", targetWidth);
-		  	svg.attr("height", targetHeight);
-		  	if (typeof onResize === 'function') onResize(svg,w,h);
 		  	return my;
+		}
+
+		my.onResize = function(func) {
+			if (!arguments.length) return onResize;
+	    	onResize = func;
+	    	return my;
 		}
 
 		/*
@@ -427,6 +432,12 @@ Minimal use case with callback :
 				svg.attr("viewBox","0 0 "+w+" "+h).attr("preserveAspectRatio","xMidYMid");
 				init = false;
 			}
+			var targetWidth = svg.node().parentNode.offsetWidth;
+		  	targetWidth = targetWidth < w ? targetWidth : w;
+		  	var targetHeight = targetWidth / aspect;
+		  	svg.attr("width", targetWidth);
+		  	svg.attr("height", targetHeight);
+		  	if (typeof onResize === 'function') onResize(svg,w,h);
 		}
 
 		return my;
