@@ -446,7 +446,79 @@ Minimal use case with callback :
 	ds.responsive = responsive;
 
 
+
+/***************** Easy table creator *********************//*
+// using code from Gregor Aisch http://bl.ocks.org/gka/17ee676dc59aa752b4e6
+// http://vis4.net/blog/posts/making-html-tables-in-d3-doesnt-need-to-be-a-pain/
+
+*/
+
+	function table(_data, _container, _columns) {
+
+		var container = _container,
+			table     = container.append("table"),
+			data      = _data,
+			columns   = _columns;
+
+		my.create = function() {
+			my();
+			return my;
+		}
+
+		my.remove = function() {
+			table.remove();
+			return my;
+		}
+	    
+        function my() {
+        	// if columns not defined, set it automatically by taking key names
+        	if (columns == null && data.length > 0) {
+        		columns = d3.keys(movies[0]).map(function(d) {
+        			return { head: d, cl: "", html: function(g){ return g[d] } }
+        		});
+        	}
+
+			// create table header
+		    table.append('thead').append('tr')
+		        .selectAll('th')
+		        .data(columns).enter()
+		        .append('th')
+		        .attr('class', function(d){ return d.cl; })
+		        .text(function(d){ return d.head; });
+
+		    // create table body
+		    table.append('tbody')
+		        .selectAll('tr')
+		        .data(data).enter()
+		        .append('tr')
+		        .selectAll('td')
+		        .data(function(row, i) {
+		            return columns.map(function(c) {
+		                // compute cell values for this specific row
+		                var cell = {};
+		                d3.keys(c).forEach(function(k) {
+		                    cell[k] = typeof c[k] == 'function' ? c[k](row,i) : c[k];
+		                });
+		                return cell;
+		            });
+		        }).enter()
+		        .append('td')
+		        .html(function(d){ return d.html; })
+		        .attr('class', function(d){ return d.cl; });
+		}
+
+		return my;
+	}
+
+	// set in namespace
+	ds.table = table;
+
+
+
+
 /***************** Number formatting *********************//*
+
+FIXME : needs to use locale by D3
 
 */
 	function formatNumber(d) {
@@ -454,6 +526,8 @@ Minimal use case with callback :
 	}
 
 	ds.formatNumber = formatNumber;
+
+
 
 })();
 
