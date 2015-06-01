@@ -3,22 +3,87 @@
 <head>
     <title>Simple tables in D3</title>
     <meta charset="utf-8">
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src="https://rawgit.com/gka/d3-jetpack/master/d3-jetpack.js"></script>
+    <script src="d3.v3.min.js"></script>
+    <script src="d3-jetpack.js"></script>
     <style type="text/css">
     body { font-family: 'Helvetica Neue', Helvetica; font-weight: 300; padding: 20px;}
     th { text-align: left; }
     th, td { padding: 0 1em 0.5ex 0;}
     th.center, td.center { text-align: center; }
     th.num, td.num { text-align: right; }
+    .axis path, .axis line {fill: none; stroke: #ccc;}
+    circle {stroke: #ccc;}
+    circle.selected {stroke-width: 1em; stroke-opacity: .5; stroke: black;}
+    .tooltip {
+        background-color: #fff;
+        border: 1px solid lightgray;
+        padding: 5px;
+        //width: 0; 
+        //height: 0; 
+        //border-left: 5px solid transparent;
+        //border-right: 5px solid transparent;
+        //border-bottom: 5px solid black;
+    }
+    .pill {width: 1em; height: 1em;}
+    div {margin-bottom: 2em;}
     </style>
 
     <script src="dsutils.js"></script>
 </head>
 <body>
+    <h1>Best rated films on ImDb</h1>
+    
+    <svg></svg>
+
+    <h3> Details of selected element : onclick ds.table([d],d3.select("#details")).create()</h3>
+    <div id="details"></div>
+
+    <h3>ds.table(movies, d3.select("#t2")).fields(['title','year']).create();</h3>
+    <div id="t2"></div>
+
+    <h3>ds.table(movies, d3.select("#t3")).columnsSpecs(columns).create();</h3>
+    <div id="t3"></div>
+
+    <h3>ds.table(columns, d3.select("#t4")).create();</h3>
+    <div id="t4"></div>
+
+    <h3> 
+
     <script>
 
-    // the table rows, typically loaded from data file using d3.csv
+
+    var margin = {top: 20, right: 20, bottom: 30, left: 20},
+        width = 960 - margin.left - margin.right,
+        height = 550 - margin.top - margin.bottom;
+
+    var x = d3.scale.linear()
+      .range([0,width]);
+
+    var y = d3.scale.linear()
+      .range([height,0]);
+
+    var r = d3.scale.sqrt()
+        .range([20,50]);
+
+    var color = d3.scale.linear()
+        .range(['#e5f5f9','#2ca25f'])
+        .interpolate(d3.interpolateLab);
+
+    var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("right");
+
+    var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("bottom");
+
+    var svg = d3.select("svg")
+        .attr("width", width+margin.left+margin.right)
+        .attr("height", height+margin.top+margin.bottom)
+        .append("g")
+          .attr("transform","translate("+margin.left+","+margin.top+")");
+
+    // the data, table rows, typically loaded from data file using d3.csv
     var movies = [
         { title: "The Godfather", year: 1972, length: 175, budget: 6000000, rating: 9.1 },
         { title: "The Shawshank Redemption", year: 1994, length: 142, budget: 25000000, rating: 9.1 },
@@ -32,65 +97,78 @@
         { title: "Pulp Fiction", year: 1994, length: 168, budget: 8000000, rating: 8.8 }
     ];
 
-    var t = ds.table(movies, d3.select("body")).create();
-    d3.select("body").append("button").text("Remove table t").on("click", 
-        function() {
-            t.remove();
-            movies2 = movies.filter(function(d){return d.year > 1970})
-                .sort(d3.ascendingKey('year'));
-            ds.table(movies2, d3.select("body")).create();
-        });
-
     // column definitions
-    
     var columns = [
         { head: 'Movie title', cl: 'title', html: ƒ('title') },
         { head: 'Year', cl: 'center', html: ƒ('year') },
         { head: 'Length', cl: 'center', html: ƒ('length', length()) },
         { head: 'Budget', cl: 'num', html: ƒ('budget', d3.format('$,')) },
-        { head: 'Rating', cl: 'num', html: ƒ('rating', d3.format('.1f')) }
+        { head: 'Rating', cl: 'num', html: ƒ('rating', d3.format('.1f')) },
+        { head: 'RatingColor', cl: '', html: ƒ('rating', pill) }
     ];
 
-    var tt = ds.table(movies, d3.select("body"),columns).create();
-    
-/*
-    // create table
-    var table = d3.select('body')
-        .append('table');
+    // A dummy SVG visualization, with automatic tooltip
+    x.domain(d3.extent(movies.map(ƒ('year')))).nice();
+    y.domain(d3.extent(movies.map(ƒ('length')))).nice();
+    r.domain(d3.extent(movies.map(ƒ('budget')))).nice();
+    color.domain(d3.extent(movies.map(ƒ('rating'))));
+    svg.append("g.x.axis").translate([0,height]).call(xAxis);
+    svg.append("g.y.axis").call(yAxis);
 
-    // create table header
-    table.append('thead').append('tr')
-        .selectAll('th')
-        .data(columns).enter()
-        .append('th')
-        .attr('class', ƒ('cl'))
-        .text(ƒ('head'));
-
-    // create table body
-    table.append('tbody')
-        .selectAll('tr')
+    var circles = svg.selectAll("circle")
         .data(movies).enter()
-        .append('tr')
-        .selectAll('td')
-        .data(function(row, i) {
-            return columns.map(function(c) {
-                // compute cell values for this specific row
-                var cell = {};
-                d3.keys(c).forEach(function(k) {
-                    cell[k] = typeof c[k] == 'function' ? c[k](row,i) : c[k];
-                });
-                return cell;
-            });
-        }).enter()
-        .append('td')
-        .html(ƒ('html'))
-        .attr('class', ƒ('cl'));
-*/
+        .append("circle")
+        .attr({cx: ƒ('year',x), cy:ƒ('length',y), r:ƒ('budget',r)})
+        .style("fill",ƒ('rating',color));
+
+    // dsutils - displays all fields of this element automatically as a tooltip
+    ds.tooltip(circles).table(); 
+
+    // dsutils - displays all fields of this element automatically as a table on click
+    circles.on("click", function(d) {
+        circles.classed("selected",function(dd){return d === dd;});
+        var details = d3.select("#details");
+        details.style("background-color","#ff0")
+        .transition().duration(1000).style("background-color","#fff");
+
+        details.selectAll("*").remove();
+        ds.table([d], details).create();  // HERE
+    })
+
+    // test tables
+    ds.table(movies.filter(function(d){return d.year > 1970}).sort(d3.ascendingKey('year')), d3.select("#t1")).create();
+
+
+    // other kinds of tables
+    var ttt = ds.table(movies, d3.select("#t2"))
+                .fields(['title','year'])
+                .create();
+
+    /*
+    d3.select("body").append("button").text("Remove table t").on("click", 
+        function() {
+            t.remove();
+    }
+    */
+
+    ds.table(movies, d3.select("#t3")).columnsSpecs(columns).create();
+ 
+    ds.table(columns, d3.select("#t4")).create();
+
+
+    // Formatting functions
     function length() {
         var fmt = d3.format('02d');
         return function(l) { return Math.floor(l / 60) + ':' + fmt(l % 60) + ''; };
     }
 
+    // Shows a colored pill for field "rating" in the table
+    function pill(r) {
+        return  (
+            '<div class="pill" style="'
+            +"background-color:"+color(r)
+            +';"></div>' ); 
+    }
 
     </script>
 </body>

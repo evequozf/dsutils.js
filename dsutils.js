@@ -118,6 +118,11 @@ and not on event d3.event.pageX and d3.event.pageY (default) :
 	  svg.on("click", tt.hide);    //touch screen -> hide on click elsewhere
 	}
 
+4. Easily create a default tooltip that shows all properties of the element being hovered
+   by just calling ds.ttip(<selection>).table()
+
+
+
 IMPORTANT WARNING
 
 The value set by .html(...) has precedence over the value of .onShow(...).
@@ -286,6 +291,17 @@ See function definition for further fields and functions.
 	    	return my;
 		}
 
+		// Easily create a default tooltip that shows all properties of the current element
+		// by just calling ds.ttip(<selection>).table()
+		my.table = function() {
+			html = function(d) { 
+				that.selectAll("*").remove();
+				ds.table([d], that).create(); 
+				return that.outerHTML;
+			};
+	    	return my;
+		}
+
 		my.onShow = function(func) {
 			if (!arguments.length) return onShow;
 	    	onShow = func;
@@ -414,15 +430,17 @@ Minimal use case with callback :
 		*/
 
 		my.start = function() {
-			for(var i=0; i<events.length; i++)
-				window.addEventListener(events[i],my.update);
+			if(!started)
+				for(var i=0; i<events.length; i++)
+					window.addEventListener(events[i],my.update);
 			started = true;
 			return my;
 		}
 
 		my.stop = function() {
-			for(var i=0; i<events.length; i++)
-				window.removeEventListener(events[i],my.update);
+			if(started)
+				for(var i=0; i<events.length; i++)
+					window.removeEventListener(events[i],my.update);
 			started = false;
 			return my;
 		}
@@ -453,12 +471,12 @@ Minimal use case with callback :
 
 */
 
-	function table(_data, _container, _columns) {
+	function table(_data, _container) {
 
 		var container = _container,
 			table     = container.append("table"),
 			data      = _data,
-			columns   = _columns;
+			columns   = null;
 
 		my.create = function() {
 			my();
@@ -470,12 +488,47 @@ Minimal use case with callback :
 			return my;
 		}
 	    
-        function my() {
-        	// if columns not defined, set it automatically by taking key names
-        	if (columns == null && data.length > 0) {
-        		columns = d3.keys(movies[0]).map(function(d) {
+		/*
+		// Put enter / update / exit ?
+		function enter() {
+
+		}
+
+		function update() {
+
+		}
+
+		function exit() {
+
+		}
+		*/
+
+		// Set full spec of columns to be displayed. Format is a list of specs:
+		// [ { head: 'Movie title', cl: 'title', html: function(d) { return d.title; } }, ... ]
+		my.columnsSpecs = function(cols) {
+			if (!arguments.length) return columns;
+	    	columns = cols;
+	    	return my;
+		}
+
+		// Set only fields names that should be displayed ['movie','year']
+		// automatically set full spec with default accessor d['movie']
+		// and empty class
+		my.fields = function(fields) {
+			columns = createColumnSpec(fields);
+	    	return my;
+		}
+
+		function createColumnSpec(headers) {
+			return headers.map(function(d) {
         			return { head: d, cl: "", html: function(g){ return g[d] } }
         		});
+		}
+
+        function my() {
+        	// if columns not defined, set it automatically by taking key names of first entry
+        	if (columns == null && data.length > 0) {
+        		columns = createColumnSpec(d3.keys(data[0]));
         	}
 
 			// create table header
@@ -492,19 +545,19 @@ Minimal use case with callback :
 		        .data(data).enter()
 		        .append('tr')
 		        .selectAll('td')
-		        .data(function(row, i) {
-		            return columns.map(function(c) {
-		                // compute cell values for this specific row
-		                var cell = {};
-		                d3.keys(c).forEach(function(k) {
-		                    cell[k] = typeof c[k] == 'function' ? c[k](row,i) : c[k];
-		                });
-		                return cell;
-		            });
-		        }).enter()
-		        .append('td')
-		        .html(function(d){ return d.html; })
-		        .attr('class', function(d){ return d.cl; });
+			        .data(function(row, i) {
+			            return columns.map(function(c) {
+			                // compute cell values for this specific row
+			                var cell = {};
+			                d3.keys(c).forEach(function(k) {
+			                    cell[k] = typeof c[k] == 'function' ? c[k](row,i) : c[k];
+			                });
+			                return cell;
+			            });	
+			        }).enter()
+			        .append('td')
+			        .html(function(d){ return d.html; })
+			        .attr('class', function(d){ return d.cl; });
 		}
 
 		return my;
