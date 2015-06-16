@@ -4,16 +4,16 @@ Set of utilities for D3
 ## Tooltip
 
 1. Easiest use: create the tooltip by binding to a selection, 
-an set html for content change:
+an set `html` for content change:
 ```javascript
 	var tt = ds.tooltip(selection);
   	tt.html(function(d) { return d.Nom + "<br>" + d.Altitude + "m"; });
 ```
 2. Without binding to selection, you have to manually call listeners : 
 attach the display of the tooltip to a selection of D3 elements 
-by just setting the .html(). Warning: without binding a selection but
-nevertheless using relative .x and .y, the call to show needs to provide the
-"this" context of the element as third argument !
+by just setting the `.html()`. Warning: without binding a selection but
+nevertheless using relative `.x` and `.y`, the call to show needs to provide the
+`this` context of the element as third argument !
 ```javascript
 	var tt = ds.ttip();
   	selection
@@ -22,7 +22,7 @@ nevertheless using relative .x and .y, the call to show needs to provide the
 ```
 3. More complex example, building the structure of the tooltip beforehand, and setting
 it to display on specific x,y positions relative to the SVG container's coordinate system
-and not on event d3.event.pageX and d3.event.pageY (default) :
+and not on event `d3.event.pageX` and `d3.event.pageY` (default) :
 ```javascript
 	function attachTooltip(selection) {
   
@@ -54,12 +54,12 @@ and not on event d3.event.pageX and d3.event.pageY (default) :
 	}
 ```
 4. Easily create a default tooltip that shows all properties of the element being hovered
-   by just calling ds.ttip(<selection>).table()
+   by just calling `ds.ttip(<selection>).table()`
 
-IMPORTANT WARNING
+### IMPORTANT WARNING
 
-The value set by .html(...) has precedence over the value of .onShow(...).
-Therefore, when the tooltip is shown, tt.html() is evaluated before 
+The value set by `.html(...)` has precedence over the value of `.onShow(...)`.
+Therefore, when the tooltip is shown, `tt.html()` is evaluated first 
 and it replaces the whole HTML content. For example if you call:
 ```javascript
 	var tt = ds.tooltip(selection);
@@ -73,9 +73,9 @@ The tooltip will actually be just
 ```html
 	<div class="tooltip">World</div>.
 ```
-Therefore, to avoid bad surprises, use wether .html() or .onShow(), 
-but not both simultaneously. Setting .html(null) effectively removes
-execution of the .html() when showing the tooltip.
+Therefore, to avoid bad surprises, use wether `.html()` or `.onShow()`, 
+but not both simultaneously. Setting `.html(null)` effectively removes
+execution of the `.html()` when showing the tooltip.
 
 Also, different tooltips can be created for different d3 selection, e.g.:
 ```javascript
