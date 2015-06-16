@@ -3,13 +3,15 @@ Set of utilities for D3
 
 ## Tooltip
 
-1. Easiest use: create the tooltip by binding to a selection, 
+- Easiest use: create the tooltip by binding to a selection, 
 an set `html` for content change:
 ```javascript
 	var tt = ds.tooltip(selection);
   	tt.html(function(d) { return d.Nom + "<br>" + d.Altitude + "m"; });
 ```
-2. Without binding to selection, you have to manually call listeners : 
+- Easily create a default tooltip that shows all properties of the element being hovered
+   by just calling `ds.ttip(<selection>).table()`
+- Without binding to selection, you have to manually call listeners : 
 attach the display of the tooltip to a selection of D3 elements 
 by just setting the `.html()`. Warning: without binding a selection but
 nevertheless using relative `.x` and `.y`, the call to show needs to provide the
@@ -20,7 +22,7 @@ nevertheless using relative `.x` and `.y`, the call to show needs to provide the
     	.on("mouseover", function(d,i) { tt.html(d.Something).show(d,i,this); })
     	.on("mouseout", tt.hide);
 ```
-3. More complex example, building the structure of the tooltip beforehand, and setting
+- More complex example, building the structure of the tooltip beforehand, and setting
 it to display on specific x,y positions relative to the SVG container's coordinate system
 and not on event `d3.event.pageX` and `d3.event.pageY` (default) :
 ```javascript
@@ -53,8 +55,6 @@ and not on event `d3.event.pageX` and `d3.event.pageY` (default) :
 	  svg.on("click", tt.hide);    //touch screen -> hide on click elsewhere
 	}
 ```
-4. Easily create a default tooltip that shows all properties of the element being hovered
-   by just calling `ds.ttip(<selection>).table()`
 
 ### IMPORTANT WARNING
 
