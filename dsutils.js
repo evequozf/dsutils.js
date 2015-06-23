@@ -6,7 +6,7 @@
 
 //Define namespace ds with an initially empty list of properties
 //see http://appendto.com/2010/10/how-good-c-habits-can-encourage-bad-javascript-habits-part-1/
-var ds = (function() {
+ds = (function() {
 	var properties = {};
 	return properties;
 })();
