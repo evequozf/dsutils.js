@@ -14,7 +14,7 @@ ds = (function() {
 (function() {
 
 	//Declare version
-	ds.version = "0.1";
+	ds.version = "0.2";
 
 /************ Adding util - example prototype *****************/
 /*
@@ -364,7 +364,7 @@ of svg upon creation of the ds.responsive() :
 The update(event) function can also be called directly to force an update
 outside of regular updates triggered by 'resize' and 'load' events.
 
-This function automatically registers following listeners:
+Upon creation of the responsive object, it is automatically registered as event listener as follows:
 	window.addEventListener('resize', ...);
 	window.addEventListener('load', ...);
 
@@ -450,6 +450,10 @@ Minimal use case with callback :
 				svg.attr("viewBox","0 0 "+w+" "+h).attr("preserveAspectRatio","xMidYMid");
 				init = false;
 			}
+			if(svg.node().parentNode == null) return; // to fix updates of not connected to DOM elements
+			//console.log(svg.node());
+			//console.log(svg.node().parentNode);
+			//console.log(svg.node().parentNode == null);
 			var targetWidth = svg.node().parentNode.offsetWidth;
 		  	targetWidth = targetWidth < w ? targetWidth : w;
 		  	var targetHeight = targetWidth / aspect;
@@ -597,7 +601,7 @@ FIXME : needs to use locale by D3
 
 */
 	function formatNumber(d) {
-		return d3.format(",f")(d).replace(/,/g,"'");	
+		return d3.format(",f")(d).replace(/,/g," ");	
 	}
 
 	ds.formatNumber = formatNumber;
